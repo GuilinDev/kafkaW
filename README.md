@@ -1,0 +1,4 @@
+##
+
+###
+systemctl stop firewalld.service
