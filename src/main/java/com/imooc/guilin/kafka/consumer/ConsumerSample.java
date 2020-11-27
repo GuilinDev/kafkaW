@@ -140,7 +140,7 @@ public class ConsumerSample {
                long lastOffset = pRecord.get(pRecord.size() -1).offset(); //上一次消费的结束的offset
                // 单个partition中的offset，并且进行提交
                Map<TopicPartition, OffsetAndMetadata> offset = new HashMap<>();
-               offset.put(partition, new OffsetAndMetadata(lastOffset + 1)); // 下一次消费的起点，所以需要+1
+               offset.put(partition, new OffsetAndMetadata(lastOffset + 1)); // 下一次消费的起点，所以需要+1，避免重复消费
                // 提交offset
                consumer.commitSync(offset);
                System.out.println("=============partition - "+ partition +" end================");
@@ -149,7 +149,7 @@ public class ConsumerSample {
     }
 
     /*
-        手动提交offset,并且手动控制partition,更高级
+        手动提交offset,并且手动控制partition,更高级(针对某个topic中分区，而不是整个topic)
      */
     private static void commitedOffsetWithPartition2() {
         Properties props = new Properties();
@@ -169,7 +169,7 @@ public class ConsumerSample {
         // 消费订阅哪一个Topic或者几个Topic
 //        consumer.subscribe(Arrays.asList(TOPIC_NAME));
 
-        // 消费订阅某个Topic的某个分区
+        // 消费订阅某个Topic的某个分区，这里显示只消费p0分区
         consumer.assign(Arrays.asList(p0));
 
         while (true) {
@@ -220,8 +220,8 @@ public class ConsumerSample {
                 1、人为控制offset起始位置
                 2、如果出现程序错误，重复消费一次
              */
-            /*
-                1、第一次从0消费【一般情况】
+            /* 实际应用场景举例：
+                1、第一次，从0消费【一般情况】
                 2、比如一次消费了100条， offset置为101并且存入Redis
                 3、每次poll之前，从redis中获取最新的offset位置
                 4、每次从这个位置开始消费
@@ -280,6 +280,7 @@ public class ConsumerSample {
                     System.out.printf("patition = %d , offset = %d, key = %s, value = %s%n",
                             record.partition(), record.offset(), record.key(), record.value());
                     /*
+                        也可以实现令牌桶的算法：
                         1、接收到record信息以后，去令牌桶中拿取令牌
                         2、如果获取到令牌，则继续业务处理
                         3、如果获取不到令牌， 则pause等待令牌
